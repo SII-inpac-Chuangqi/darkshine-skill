@@ -103,7 +103,6 @@ The limit setting uses pre-computed `fullcutflow` histograms from reconstructed 
 ```
 DSimu (signal) → DAna → sampleMaker/miniTree.C → getHist.cxx → fullcutflow
                                                                     ↓
-                                                            runLimit.C
                                                           (90% CL ε²)
 ```
 
@@ -129,10 +128,8 @@ The `fullcutflow` histogram in `ana_signal_XXXXMeV_fullout.root` has 8 bins:
 
 ### 6.3 Run limit setting
 
-Working macro at `/Users/jonah/.hermes/skills/darkshine/darkshine-container-workflow/scripts/runLimit.C`.
 
 ```bash
-root -l -q -b runLimit.C
 ```
 
 Produces:
@@ -183,8 +180,6 @@ leg->SetMargin(0.05);      // tight column spacing
 |------|----------|---------|
 | `dp_simu.root` | DSimu | MC truth, tracker hits, calorimeter hits |
 | `dp_ana.root` | DAna | Reconstructed tracks, cutflows |
-| `sigcutflow_1.6.png` | runLimit.C | Cumulative efficiency vs mA' |
-| `limit_1.6.png` | runLimit.C | 90% CL ε² exclusion limit |
 
 ## Pitfalls
 
