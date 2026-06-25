@@ -96,6 +96,57 @@ EOF
 # Output: dp_ana.root
 ```
 
+## 5.1 Reconstruction Validation
+
+After building and running DAna, verify tracking performance against known baselines.
+
+```bash
+# Quick validation: check output tree has entries
+root -l -q -b dp_ana.root -e '
+  TFile f("dp_ana.root");
+  TTree* t = (TTree*)f.Get("dp");
+  std::cout << "Events: " << t->GetEntries() << std::endl;
+'
+
+# Full validation: compare pp resolution against truth
+# Requires truth branches enabled (config: MCTruthAnalysis.clean = 0)
+root -l -q -b dp_ana.root -e '
+  TTree* t = (TTree*)dp;
+  int n = t->GetEntries();
+  int n_tag = 0, n_rec = 0;
+  float tag_sum = 0, rec_sum = 0;
+  TBranch* b_tag = t->GetBranch("TagTrk2_pp");
+  TBranch* b_rec = t->GetBranch("RecTrk2_pp");
+  TBranch* b_truth = t->GetBranch("RecTrk2_pp_truth_ini");
+  for (int i = 0; i < n; i++) {
+    t->GetEntry(i);
+    if (b_truth && b_truth->GetNdata() > 0) {
+      float truth = ((float*)b_truth->GetAddress())[0];
+      if (b_tag && b_tag->GetNdata() > 0) {
+        float pp = ((float*)b_tag->GetAddress())[0];
+        if (truth > 0) { tag_sum += (pp - truth) / truth; n_tag++; }
+      }
+      if (b_rec && b_rec->GetNdata() > 0) {
+        float pp = ((float*)b_rec->GetAddress())[0];
+        if (truth > 0) { rec_sum += (pp - truth) / truth; n_rec++; }
+      }
+    }
+  }
+  printf("TAG: %d tracks, mean res = %.4f\n", n_tag, tag_sum/n_tag);
+  printf("REC: %d tracks, mean res = %.4f\n", n_rec, rec_sum/n_rec);
+'
+```
+
+### Expected validation numbers (8 GeV e⁻, B=−1.5T)
+
+| Method (seed/find/fit) | TAG N | TAG res | REC N | REC res |
+|------------------------|-------|---------|-------|---------|
+| 1/1/2 (DSS KasaFit + Greedy + Riemann) | ~999 | < 1% | ~1040 | ~10% |
+| 1/1/3 (DSS KasaFit + Greedy + DActs) | ~999 | < 1% | ~1040 | ~10% |
+| 2/2/2 (ACTS Karimaki + ACTS + Riemann) | ~999 | < 1% | ~570 | ~5% |
+
+Key metric: **RecTrk2 tracking efficiency** (REC tracks / events with truth) should be ≥ 99% for method 1/1/2.
+
 ## 6. Limit Setting — End-to-End
 
 The limit setting uses pre-computed `fullcutflow` histograms from reconstructed signal samples. The pipeline:
@@ -128,8 +179,16 @@ The `fullcutflow` histogram in `ana_signal_XXXXMeV_fullout.root` has 8 bins:
 
 ### 6.3 Run limit setting
 
-
 ```bash
+# Clone analysis repo
+git clone https://github.com/SII-inpac-Chuangqi/darkshine-analysis.git
+cd darkshine-analysis
+
+# Run limit setting with Baseline 1.6 cutflow
+root -l -q -b 'plots/Baseline1p6/runLimit.C'
+
+# Or with custom input path
+root -l -q -b 'plots/Baseline1p6/runLimit.C("/path/to/fullout/files/")'
 ```
 
 Produces:
